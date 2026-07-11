@@ -1,4 +1,4 @@
-// ========== 稳定可播放的免费音频池（国内可正常访问） ==========
+// ========== 降级备用音频池（API失效时自动使用） ==========
 const audioPool = [
     'https://cdn.pixabay.com/download/audio/2022/10/25/audio_946b7e50e7.mp3',
     'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3',
@@ -7,66 +7,21 @@ const audioPool = [
     'https://cdn.pixabay.com/download/audio/2021/11/25/audio_002f86c70d.mp3',
     'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
     'https://cdn.pixabay.com/download/audio/2022/10/18/audio_2de9657c59.mp3',
-    'https://cdn.pixabay.com/download/audio/2023/02/14/audio_22a6197ce9.mp3',
-    'https://cdn.pixabay.com/download/audio/2022/02/11/audio_8f5b7e2d8c.mp3',
-    'https://cdn.pixabay.com/download/audio/2022/07/13/audio_5b8e1c2a1f.mp3'
+    'https://cdn.pixabay.com/download/audio/2023/02/14/audio_22a6197ce9.mp3'
 ];
 
-function getAudioUrl(index) {
-    // 循环复用音频池，实现300首歌曲的播放效果
-    return audioPool[index % audioPool.length];
-}
+// ========== 歌单配置（可自行替换网易云歌单ID） ==========
+// 每个分类对应一个网易云歌单，点击顶部分类自动切换
+const playlistMap = {
+    all: '7453671366',    // 综合：DJ舞曲精选合集
+    edm: '2829887655',    // EDM：全球顶级电音大赏
+    house: '512810930',   // House：浩室电子精选
+    trance: '90496739',   // Trance：迷幻电音
+    bass: '3114018067'    // 重低音：Bass 劲爆舞曲
+};
 
-// ========== 生成300首舞曲数据 ==========
-const playlistData = [];
-
-const djNames = [
-    'DJ Neon', 'Pulse Master', 'Bass Dropper', 'Cyber Wave',
-    'Electric Soul', 'Midnight Raver', 'Synth King', 'Beat Mechanic',
-    'Future Sound', 'Dark Glow', 'Aurora Mix', 'Velocity',
-    'Phantom Bass', 'Crystal Noise', 'Urban Pulse', 'Shadow Dance'
-];
-
-const genres = ['edm', 'house', 'trance', 'bass'];
-
-const titleTemplates = [
-    '{adj} Night', 'Electric {noun}', 'Midnight {verb}',
-    'Neon {noun}', 'Pulse of {place}', '{verb} the Beat',
-    'Lost in {noun}', 'Digital {noun}', 'Underground {noun}',
-    'Future {verb}', 'Dark {noun}', 'Cosmic {noun}',
-    'Hyper {noun}', 'Vibrant {verb}', 'Echoes of {noun}'
-];
-
-const adjectives = ['Endless', 'Savage', 'Luminous', 'Dark', 'Bright', 'Cyber', 'Retro', 'Deep'];
-const nouns = ['Dreams', 'Waves', 'Lights', 'Beats', 'Energy', 'Soul', 'Rhythm', 'Bass', 'Vibes', 'Echo'];
-const verbs = ['Dancing', 'Running', 'Falling', 'Rising', 'Pumping', 'Dropping', 'Moving'];
-const places = ['Tokyo', 'Berlin', 'Ibiza', 'Miami', 'Shanghai', 'London', 'Amsterdam'];
-
-function generateTitle() {
-    const template = titleTemplates[Math.floor(Math.random() * titleTemplates.length)];
-    return template
-        .replace('{adj}', adjectives[Math.floor(Math.random() * adjectives.length)])
-        .replace('{noun}', nouns[Math.floor(Math.random() * nouns.length)])
-        .replace('{verb}', verbs[Math.floor(Math.random() * verbs.length)])
-        .replace('{place}', places[Math.floor(Math.random() * places.length)]);
-}
-
-// 生成300首完整歌曲数据
-for (let i = 1; i <= 300; i++) {
-    const genre = genres[Math.floor(Math.random() * genres.length)];
-    const duration = Math.floor(Math.random() * 180) + 120; // 2-5分钟随机时长
-    
-    playlistData.push({
-        id: i,
-        title: generateTitle(),
-        artist: djNames[Math.floor(Math.random() * djNames.length)],
-        cover: `https://picsum.photos/seed/dj${i}/200/200`,
-        url: getAudioUrl(i),
-        duration: duration,
-        genre: genre,
-        bpm: Math.floor(Math.random() * 60) + 120 // 120-180 BPM
-    });
-}
+const API_BASE = 'https://api.injahow.cn/meting';
+let playlistData = [];
 
 // ========== 工具函数：格式化时间 ==========
 function formatTime(seconds) {
@@ -76,34 +31,87 @@ function formatTime(seconds) {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-// ========== 渲染歌单列表 ==========
-function renderPlaylist(filter = 'all') {
+// ========== 加载真实歌单 ==========
+async function loadPlaylist(playlistId) {
     const container = document.getElementById('playlist');
-    const filtered = filter === 'all' 
-        ? playlistData 
-        : playlistData.filter(song => song.genre === filter);
+    const countEl = document.getElementById('totalCount');
     
-    document.getElementById('totalCount').textContent = `${filtered.length} 首`;
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-sub)">歌单加载中...</div>';
     
-    container.innerHTML = filtered.map((song) => {
-        const realIndex = playlistData.indexOf(song);
-        return `
-        <div class="song-item" data-index="${realIndex}">
+    try {
+        const res = await fetch(`${API_BASE}/?type=playlist&id=${playlistId}&server=netease`);
+        const data = await res.json();
+        
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('歌单数据为空');
+        }
+        
+        // 映射为统一格式
+        playlistData = data.map((item) => ({
+            id: item.id,
+            title: item.name,
+            artist: item.artist,
+            cover: item.pic,
+            url: item.url || '',
+            duration: item.time / 1000,
+            bpm: 128
+        }));
+        
+        countEl.textContent = `${playlistData.length} 首`;
+        renderCurrentPlaylist();
+        
+    } catch (err) {
+        console.warn('歌单加载失败，使用本地演示数据:', err);
+        generateDemoPlaylist();
+        renderCurrentPlaylist();
+    }
+}
+
+// ========== 本地演示数据（降级备用） ==========
+function generateDemoPlaylist() {
+    const djNames = ['DJ Neon', 'Pulse Master', 'Bass Dropper', 'Cyber Wave', 'Electric Soul'];
+    const titleTemplates = ['{adj} Night', 'Electric {noun}', 'Midnight Beat', 'Neon {noun}'];
+    const adjectives = ['Endless', 'Savage', 'Luminous', 'Dark', 'Cyber'];
+    const nouns = ['Dreams', 'Waves', 'Lights', 'Energy', 'Bass'];
+    
+    playlistData = [];
+    for (let i = 1; i <= 100; i++) {
+        const title = titleTemplates[Math.floor(Math.random() * titleTemplates.length)]
+            .replace('{adj}', adjectives[Math.floor(Math.random() * adjectives.length)])
+            .replace('{noun}', nouns[Math.floor(Math.random() * nouns.length)]);
+        
+        playlistData.push({
+            id: i,
+            title: title,
+            artist: djNames[Math.floor(Math.random() * djNames.length)],
+            cover: `https://picsum.photos/seed/dj${i}/200/200`,
+            url: audioPool[i % audioPool.length],
+            duration: Math.floor(Math.random() * 180) + 120,
+            bpm: Math.floor(Math.random() * 60) + 120
+        });
+    }
+    document.getElementById('totalCount').textContent = `${playlistData.length} 首`;
+}
+
+// ========== 渲染歌单列表 ==========
+function renderCurrentPlaylist() {
+    const container = document.getElementById('playlist');
+    
+    container.innerHTML = playlistData.map((song, index) => `
+        <div class="song-item" data-index="${index}">
             <img src="${song.cover}" alt="${song.title}" class="song-item-cover">
             <div class="song-item-info">
                 <div class="song-item-title">${song.title}</div>
-                <div class="song-item-artist">${song.artist} · ${song.bpm} BPM</div>
+                <div class="song-item-artist">${song.artist} · 电音舞曲</div>
             </div>
             <span class="song-item-duration">${formatTime(song.duration)}</span>
         </div>
-        `;
-    }).join('');
+    `).join('');
     
-    // 绑定歌曲点击事件
     bindSongClick();
 }
 
-// 绑定歌曲点击播放
+// ========== 绑定歌曲点击播放 ==========
 function bindSongClick() {
     document.querySelectorAll('.song-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -113,16 +121,19 @@ function bindSongClick() {
     });
 }
 
-// ========== 分类切换功能 ==========
+// ========== 分类切换（切换不同歌单） ==========
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        renderPlaylist(btn.dataset.tab);
+        const category = btn.dataset.tab;
+        if (playlistMap[category]) {
+            loadPlaylist(playlistMap[category]);
+        }
     });
 });
 
-// ========== 搜索功能 ==========
+// ========== 实时搜索 ==========
 document.getElementById('searchInput').addEventListener('input', (e) => {
     const keyword = e.target.value.toLowerCase().trim();
     const container = document.getElementById('playlist');
@@ -141,7 +152,7 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
             <img src="${song.cover}" alt="${song.title}" class="song-item-cover">
             <div class="song-item-info">
                 <div class="song-item-title">${song.title}</div>
-                <div class="song-item-artist">${song.artist} · ${song.bpm} BPM</div>
+                <div class="song-item-artist">${song.artist} · 电音舞曲</div>
             </div>
             <span class="song-item-duration">${formatTime(song.duration)}</span>
         </div>
@@ -153,5 +164,5 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
 
 // ========== 页面初始化 ==========
 window.addEventListener('DOMContentLoaded', () => {
-    renderPlaylist();
+    loadPlaylist(playlistMap.all);
 });
