@@ -17,7 +17,7 @@ const playlistMap = {
     emo: '6723962964'       // 深夜EMO治愈
 };
 
-const API_BASE = 'https://api.injahow.cn/meting';
+const API_BASE = 'https://meting.qjqq.cn';
 let playlistData = [];
 
 // ========== 工具函数：格式化时间 ==========
