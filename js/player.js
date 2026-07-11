@@ -27,7 +27,7 @@ let isPlaying = false;
 let playMode = 'loop';
 let isMuted = false;
 let lastVolume = 0.7;
-const API_BASE = 'https://api.injahow.cn/meting';
+const API_BASE = 'https://meting.qjqq.cn';
 
 // 歌词状态
 let lyricList = [];
