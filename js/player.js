@@ -19,8 +19,9 @@ const songArtist = document.getElementById('songArtist');
 const miniCover = document.getElementById('miniCover');
 const miniTitle = document.getElementById('miniTitle');
 const miniArtist = document.getElementById('miniArtist');
+const lyricContainer = document.querySelector('.lyric-container');
 
-// ========== 全局状态变量 ==========
+// ========== 全局状态 ==========
 let currentIndex = 0;
 let isPlaying = false;
 let playMode = 'loop';
@@ -28,13 +29,134 @@ let isMuted = false;
 let lastVolume = 0.7;
 const API_BASE = 'https://api.injahow.cn/meting';
 
+// 歌词状态
+let lyricList = [];
+let currentLyricIndex = -1;
+
 // ========== 初始化 ==========
 window.addEventListener('DOMContentLoaded', () => {
     audio.volume = 0.7;
     createParticles();
+    initPanelTabs();
 });
 
-// ========== 动态获取歌曲真实播放地址 ==========
+function initPanelTabs() {
+    document.querySelectorAll('.panel-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+        });
+    });
+}
+
+// ========== 歌词核心功能 ==========
+// 解析LRC格式歌词
+function parseLRC(lrcText) {
+    const lines = lrcText.split('\n');
+    const result = [];
+    const timeReg = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g;
+
+    lines.forEach(line => {
+        const matches = [...line.matchAll(timeReg)];
+        const text = line.replace(timeReg, '').trim();
+        
+        if (!text) return;
+
+        matches.forEach(match => {
+            const minutes = parseInt(match[1]);
+            const seconds = parseInt(match[2]);
+            const ms = parseInt(match[3].padEnd(3, '0'));
+            const time = minutes * 60 + seconds + ms / 1000;
+            result.push({ time, text });
+        });
+    });
+
+    return result.sort((a, b) => a.time - b.time);
+}
+
+// 加载歌词
+async function loadLyric(songId) {
+    lyricList = [];
+    currentLyricIndex = -1;
+    
+    try {
+        const res = await fetch(`${API_BASE}/?type=lrc&id=${songId}&server=netease`);
+        const lrcText = await res.text();
+        
+        if (!lrcText || lrcText.trim() === '' || lrcText.includes('暂无歌词') || lrcText.length < 10) {
+            showNoLyric();
+            return;
+        }
+
+        lyricList = parseLRC(lrcText);
+        if (lyricList.length === 0) {
+            showNoLyric();
+            return;
+        }
+
+        renderLyric();
+    } catch (err) {
+        console.warn('歌词加载失败:', err);
+        showNoLyric();
+    }
+}
+
+// 渲染歌词列表
+function renderLyric() {
+    if (!lyricContainer) return;
+    
+    lyricContainer.innerHTML = `
+        <div class="lyric-list" id="lyricList">
+            ${lyricList.map((item, index) => `
+                <div class="lyric-line" data-index="${index}">${item.text}</div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// 无歌词提示
+function showNoLyric() {
+    if (!lyricContainer) return;
+    lyricContainer.innerHTML = '<p class="lyric-placeholder">暂无歌词 · 静静聆听旋律</p>';
+}
+
+// 同步歌词进度
+function updateLyric(currentTime) {
+    if (lyricList.length === 0) return;
+
+    let index = -1;
+    for (let i = 0; i < lyricList.length; i++) {
+        if (currentTime >= lyricList[i].time) {
+            index = i;
+        } else {
+            break;
+        }
+    }
+
+    if (index === currentLyricIndex) return;
+    currentLyricIndex = index;
+
+    // 更新高亮
+    document.querySelectorAll('.lyric-line').forEach(line => {
+        line.classList.remove('active');
+    });
+
+    const activeLine = document.querySelector(`.lyric-line[data-index="${index}"]`);
+    if (activeLine) {
+        activeLine.classList.add('active');
+        
+        // 自动滚动居中
+        const lyricListEl = document.getElementById('lyricList');
+        const containerHeight = lyricContainer.clientHeight;
+        const lineTop = activeLine.offsetTop;
+        const lineHeight = activeLine.clientHeight;
+        const offset = lineTop - containerHeight / 2 + lineHeight / 2;
+        
+        lyricListEl.style.transform = `translateY(-${Math.max(0, offset)}px)`;
+    }
+}
+
+// ========== 获取真实播放地址 ==========
 async function getSongUrl(songId) {
     try {
         const res = await fetch(`${API_BASE}/?type=url&id=${songId}&server=netease`);
@@ -44,7 +166,7 @@ async function getSongUrl(songId) {
         }
         throw new Error('播放地址无效');
     } catch (err) {
-        console.warn('获取真实地址失败，使用备用音频:', err);
+        console.warn('获取播放地址失败，使用备用音频:', err);
         return audioPool[Math.floor(Math.random() * audioPool.length)];
     }
 }
@@ -56,7 +178,7 @@ async function playSong(index) {
     currentIndex = index;
     const song = playlistData[index];
     
-    // 先更新界面
+    // 更新界面信息
     coverImg.src = song.cover;
     miniCover.src = song.cover;
     songTitle.textContent = song.title;
@@ -72,9 +194,11 @@ async function playSong(index) {
             item.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
+
+    // 加载歌词
+    loadLyric(song.id);
     
     try {
-        // 获取播放地址
         let playUrl = song.url;
         if (!playUrl || !playUrl.startsWith('http')) {
             playUrl = await getSongUrl(song.id);
@@ -87,7 +211,7 @@ async function playSong(index) {
         updatePlayButton();
         albumCover.classList.add('playing');
         
-        // 初始化可视化（跨域限制时会自动失效，不影响播放）
+        // 初始化可视化
         if (typeof initVisualizer === 'function') {
             initVisualizer();
         }
@@ -98,7 +222,7 @@ async function playSong(index) {
     }
 }
 
-// ========== 播放/暂停切换 ==========
+// ========== 播放/暂停控制 ==========
 function togglePlay() {
     if (!playlistData || playlistData.length === 0) {
         alert('歌单加载中，请稍候...');
@@ -167,13 +291,16 @@ audio.addEventListener('ended', () => {
     playNext();
 });
 
-// ========== 进度条控制 ==========
+// ========== 进度条 + 歌词同步 ==========
 audio.addEventListener('timeupdate', () => {
     if (!audio.duration) return;
     const percent = (audio.currentTime / audio.duration) * 100;
     progressFill.style.width = percent + '%';
     progressHandle.style.left = percent + '%';
     currentTimeEl.textContent = formatTime(audio.currentTime);
+    
+    // 同步歌词
+    updateLyric(audio.currentTime);
 });
 
 audio.addEventListener('loadedmetadata', () => {
@@ -231,13 +358,13 @@ modeBtn.addEventListener('click', () => {
 function createParticles() {
     const container = document.getElementById('particles');
     if (!container) return;
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 40; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
         particle.style.left = Math.random() * 100 + '%';
-        particle.style.animationDelay = Math.random() * 15 + 's';
-        particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
-        const size = Math.random() * 4 + 2;
+        particle.style.animationDelay = Math.random() * 18 + 's';
+        particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
+        const size = Math.random() * 3 + 1;
         particle.style.width = size + 'px';
         particle.style.height = size + 'px';
         container.appendChild(particle);
