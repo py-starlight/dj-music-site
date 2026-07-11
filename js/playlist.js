@@ -5,19 +5,16 @@ const audioPool = [
     'https://cdn.pixabay.com/download/audio/2023/01/09/audio_31c5716b0f.mp3',
     'https://cdn.pixabay.com/download/audio/2022/08/23/audio_d08cc950b3.mp3',
     'https://cdn.pixabay.com/download/audio/2021/11/25/audio_002f86c70d.mp3',
-    'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
-    'https://cdn.pixabay.com/download/audio/2022/10/18/audio_2de9657c59.mp3',
-    'https://cdn.pixabay.com/download/audio/2023/02/14/audio_22a6197ce9.mp3'
+    'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3'
 ];
 
-// ========== 歌单配置（可自行替换网易云歌单ID） ==========
-// 每个分类对应一个网易云歌单，点击顶部分类自动切换
+// ========== 伤感情歌单配置（可自行替换网易云歌单ID） ==========
 const playlistMap = {
-    all: '7453671366',    // 综合：DJ舞曲精选合集
-    edm: '2829887655',    // EDM：全球顶级电音大赏
-    house: '512810930',   // House：浩室电子精选
-    trance: '90496739',   // Trance：迷幻电音
-    bass: '3114018067'    // 重低音：Bass 劲爆舞曲
+    all: '7138570252',      // 综合：华语伤感·深夜必听
+    huayu: '5042622681',    // 华语催泪情歌
+    yueyu: '1164101204',    // 粤语经典伤感
+    classic: '923981237',   // 年代金曲伤感
+    emo: '6723962964'       // 深夜EMO治愈
 };
 
 const API_BASE = 'https://api.injahow.cn/meting';
@@ -45,23 +42,21 @@ async function loadPlaylist(playlistId) {
         if (!Array.isArray(data) || data.length === 0) {
             throw new Error('歌单数据为空');
         }
-        
-        // 映射为统一格式
+
         playlistData = data.map((item) => ({
             id: item.id,
             title: item.name,
             artist: item.artist,
             cover: item.pic,
             url: item.url || '',
-            duration: item.time / 1000,
-            bpm: 128
+            duration: item.time / 1000
         }));
         
         countEl.textContent = `${playlistData.length} 首`;
         renderCurrentPlaylist();
         
     } catch (err) {
-        console.warn('歌单加载失败，使用本地演示数据:', err);
+        console.warn('歌单加载失败，使用演示数据:', err);
         generateDemoPlaylist();
         renderCurrentPlaylist();
     }
@@ -69,25 +64,18 @@ async function loadPlaylist(playlistId) {
 
 // ========== 本地演示数据（降级备用） ==========
 function generateDemoPlaylist() {
-    const djNames = ['DJ Neon', 'Pulse Master', 'Bass Dropper', 'Cyber Wave', 'Electric Soul'];
-    const titleTemplates = ['{adj} Night', 'Electric {noun}', 'Midnight Beat', 'Neon {noun}'];
-    const adjectives = ['Endless', 'Savage', 'Luminous', 'Dark', 'Cyber'];
-    const nouns = ['Dreams', 'Waves', 'Lights', 'Energy', 'Bass'];
+    const singers = ['周杰伦', '林俊杰', '陈奕迅', '薛之谦', '毛不易', '张惠妹', '梁静茹'];
+    const titles = ['晴天', '后来', '十年', '平凡之路', '演员', '遇见', '匆匆那年', '消愁'];
     
     playlistData = [];
-    for (let i = 1; i <= 100; i++) {
-        const title = titleTemplates[Math.floor(Math.random() * titleTemplates.length)]
-            .replace('{adj}', adjectives[Math.floor(Math.random() * adjectives.length)])
-            .replace('{noun}', nouns[Math.floor(Math.random() * nouns.length)]);
-        
+    for (let i = 0; i < 50; i++) {
         playlistData.push({
-            id: i,
-            title: title,
-            artist: djNames[Math.floor(Math.random() * djNames.length)],
-            cover: `https://picsum.photos/seed/dj${i}/200/200`,
+            id: i + 1,
+            title: titles[i % titles.length],
+            artist: singers[i % singers.length],
+            cover: `https://picsum.photos/seed/sad${i}/200/200`,
             url: audioPool[i % audioPool.length],
-            duration: Math.floor(Math.random() * 180) + 120,
-            bpm: Math.floor(Math.random() * 60) + 120
+            duration: Math.floor(Math.random() * 180) + 180
         });
     }
     document.getElementById('totalCount').textContent = `${playlistData.length} 首`;
@@ -102,7 +90,7 @@ function renderCurrentPlaylist() {
             <img src="${song.cover}" alt="${song.title}" class="song-item-cover">
             <div class="song-item-info">
                 <div class="song-item-title">${song.title}</div>
-                <div class="song-item-artist">${song.artist} · 电音舞曲</div>
+                <div class="song-item-artist">${song.artist}</div>
             </div>
             <span class="song-item-duration">${formatTime(song.duration)}</span>
         </div>
@@ -111,7 +99,7 @@ function renderCurrentPlaylist() {
     bindSongClick();
 }
 
-// ========== 绑定歌曲点击播放 ==========
+// ========== 绑定歌曲点击事件 ==========
 function bindSongClick() {
     document.querySelectorAll('.song-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -121,7 +109,7 @@ function bindSongClick() {
     });
 }
 
-// ========== 分类切换（切换不同歌单） ==========
+// ========== 分类切换 ==========
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -152,7 +140,7 @@ document.getElementById('searchInput').addEventListener('input', (e) => {
             <img src="${song.cover}" alt="${song.title}" class="song-item-cover">
             <div class="song-item-info">
                 <div class="song-item-title">${song.title}</div>
-                <div class="song-item-artist">${song.artist} · 电音舞曲</div>
+                <div class="song-item-artist">${song.artist}</div>
             </div>
             <span class="song-item-duration">${formatTime(song.duration)}</span>
         </div>
