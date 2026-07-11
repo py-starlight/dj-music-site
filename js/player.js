@@ -23,9 +23,10 @@ const miniArtist = document.getElementById('miniArtist');
 // ========== 全局状态变量 ==========
 let currentIndex = 0;
 let isPlaying = false;
-let playMode = 'loop'; // loop列表循环 / single单曲循环 / shuffle随机播放
+let playMode = 'loop';
 let isMuted = false;
 let lastVolume = 0.7;
+const API_BASE = 'https://api.injahow.cn/meting';
 
 // ========== 初始化 ==========
 window.addEventListener('DOMContentLoaded', () => {
@@ -33,13 +34,29 @@ window.addEventListener('DOMContentLoaded', () => {
     createParticles();
 });
 
+// ========== 动态获取歌曲真实播放地址 ==========
+async function getSongUrl(songId) {
+    try {
+        const res = await fetch(`${API_BASE}/?type=url&id=${songId}&server=netease`);
+        const url = await res.text();
+        if (url && url.startsWith('http')) {
+            return url;
+        }
+        throw new Error('播放地址无效');
+    } catch (err) {
+        console.warn('获取真实地址失败，使用备用音频:', err);
+        return audioPool[Math.floor(Math.random() * audioPool.length)];
+    }
+}
+
 // ========== 核心播放函数 ==========
-function playSong(index) {
+async function playSong(index) {
+    if (!playlistData || playlistData.length === 0) return;
+    
     currentIndex = index;
     const song = playlistData[index];
     
-    // 更新界面信息
-    audio.src = song.url;
+    // 先更新界面
     coverImg.src = song.cover;
     miniCover.src = song.cover;
     songTitle.textContent = song.title;
@@ -47,34 +64,47 @@ function playSong(index) {
     miniTitle.textContent = song.title;
     miniArtist.textContent = song.artist;
     
-    // 更新列表播放高亮
+    // 列表高亮 + 自动滚动
     document.querySelectorAll('.song-item').forEach(item => {
         item.classList.remove('playing');
         if (parseInt(item.dataset.index) === index) {
             item.classList.add('playing');
-            // 自动滚动到播放位置
             item.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
     
-    // 播放音频
-    audio.load();
-    audio.play().then(() => {
+    try {
+        // 获取播放地址
+        let playUrl = song.url;
+        if (!playUrl || !playUrl.startsWith('http')) {
+            playUrl = await getSongUrl(song.id);
+        }
+        
+        audio.src = playUrl;
+        await audio.play();
+        
         isPlaying = true;
         updatePlayButton();
         albumCover.classList.add('playing');
-        // 初始化音频可视化
+        
+        // 初始化可视化（跨域限制时会自动失效，不影响播放）
         if (typeof initVisualizer === 'function') {
             initVisualizer();
         }
-    }).catch(err => {
+        
+    } catch (err) {
         console.warn('播放失败，自动切换下一首:', err);
-        playNext();
-    });
+        setTimeout(playNext, 500);
+    }
 }
 
 // ========== 播放/暂停切换 ==========
 function togglePlay() {
+    if (!playlistData || playlistData.length === 0) {
+        alert('歌单加载中，请稍候...');
+        return;
+    }
+    
     if (!audio.src || audio.src === window.location.href) {
         playSong(0);
         return;
@@ -91,19 +121,19 @@ function togglePlay() {
     updatePlayButton();
 }
 
-// 更新播放按钮图标
 function updatePlayButton() {
     const icon = isPlaying ? '⏸' : '▶';
     playBtn.textContent = icon;
     miniPlayBtn.textContent = icon;
 }
 
-// 绑定播放按钮事件
 playBtn.addEventListener('click', togglePlay);
 miniPlayBtn.addEventListener('click', togglePlay);
 
 // ========== 上一首/下一首 ==========
 prevBtn.addEventListener('click', () => {
+    if (!playlistData || playlistData.length === 0) return;
+    
     let newIndex;
     if (playMode === 'shuffle') {
         newIndex = Math.floor(Math.random() * playlistData.length);
@@ -118,11 +148,12 @@ nextBtn.addEventListener('click', () => {
 });
 
 function playNext() {
+    if (!playlistData || playlistData.length === 0) return;
+    
     let newIndex;
     if (playMode === 'shuffle') {
         newIndex = Math.floor(Math.random() * playlistData.length);
     } else if (playMode === 'single') {
-        newIndex = currentIndex;
         audio.currentTime = 0;
         audio.play();
         return;
@@ -132,7 +163,6 @@ function playNext() {
     playSong(newIndex);
 }
 
-// 播放结束自动切换
 audio.addEventListener('ended', () => {
     playNext();
 });
@@ -150,7 +180,6 @@ audio.addEventListener('loadedmetadata', () => {
     totalTimeEl.textContent = formatTime(audio.duration);
 });
 
-// 点击进度条跳转
 progressBar.addEventListener('click', (e) => {
     if (!audio.duration) return;
     const rect = progressBar.getBoundingClientRect();
@@ -183,13 +212,7 @@ volumeBtn.addEventListener('click', () => {
 
 function updateVolumeIcon() {
     const vol = audio.volume;
-    if (vol === 0) {
-        volumeBtn.textContent = '🔇';
-    } else if (vol < 0.5) {
-        volumeBtn.textContent = '🔉';
-    } else {
-        volumeBtn.textContent = '🔊';
-    }
+    volumeBtn.textContent = vol === 0 ? '🔇' : vol < 0.5 ? '🔉' : '🔊';
 }
 
 // ========== 播放模式切换 ==========
@@ -197,11 +220,11 @@ modeBtn.addEventListener('click', () => {
     const modes = ['loop', 'single', 'shuffle'];
     const icons = ['🔁', '🔂', '🔀'];
     const tips = ['列表循环', '单曲循环', '随机播放'];
-    const currentModeIndex = modes.indexOf(playMode);
-    const nextIndex = (currentModeIndex + 1) % modes.length;
-    playMode = modes[nextIndex];
-    modeBtn.textContent = icons[nextIndex];
-    modeBtn.title = tips[nextIndex];
+    const idx = modes.indexOf(playMode);
+    const nextIdx = (idx + 1) % modes.length;
+    playMode = modes[nextIdx];
+    modeBtn.textContent = icons[nextIdx];
+    modeBtn.title = tips[nextIdx];
 });
 
 // ========== 背景粒子生成 ==========
