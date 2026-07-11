@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Beat - 沉浸式DJ舞曲站</title>
+    <title>晚情歌 · 深夜伤感音乐站</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- 背景粒子层 -->
+    <!-- 背景渐变光晕 -->
+    <div class="bg-glow"></div>
     <div class="bg-particles" id="particles"></div>
     
     <!-- 主容器 -->
@@ -16,17 +17,18 @@
         <!-- 顶部导航 -->
         <header class="navbar">
             <div class="logo">
-                <span class="logo-icon">♫</span>
-                <span class="logo-text">NEON BEAT</span>
+                <span class="logo-icon">♪</span>
+                <span class="logo-text">晚情歌</span>
             </div>
             <nav class="nav-menu">
                 <a href="#" class="nav-item active">推荐</a>
-                <a href="#" class="nav-item">歌单</a>
-                <a href="#" class="nav-item">DJ榜单</a>
-                <a href="#" class="nav-item">分类</a>
+                <a href="#" class="nav-item">华语</a>
+                <a href="#" class="nav-item">粤语</a>
+                <a href="#" class="nav-item">经典</a>
+                <a href="#" class="nav-item">治愈</a>
             </nav>
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="搜索舞曲 / DJ...">
+                <input type="text" id="searchInput" placeholder="搜索歌曲 / 歌手...">
                 <button class="search-btn">🔍</button>
             </div>
         </header>
@@ -36,36 +38,34 @@
             <!-- 左侧歌单列表 -->
             <aside class="sidebar">
                 <div class="sidebar-header">
-                    <h3>热门舞曲库</h3>
+                    <h3>伤感歌单</h3>
                     <span class="song-count" id="totalCount">0 首</span>
                 </div>
                 <div class="playlist-tabs">
-                    <button class="tab-btn active" data-tab="all">全部</button>
-                    <button class="tab-btn" data-tab="edm">EDM电音</button>
-                    <button class="tab-btn" data-tab="house">House</button>
-                    <button class="tab-btn" data-tab="trance">Trance</button>
-                    <button class="tab-btn" data-tab="bass">重低音</button>
+                    <button class="tab-btn active" data-tab="all">综合</button>
+                    <button class="tab-btn" data-tab="huayu">华语催泪</button>
+                    <button class="tab-btn" data-tab="yueyu">粤语经典</button>
+                    <button class="tab-btn" data-tab="classic">年代金曲</button>
+                    <button class="tab-btn" data-tab="emo">深夜EMO</button>
                 </div>
                 <div class="playlist-container" id="playlist">
-                    <!-- 歌曲列表由JS自动渲染 -->
+                    <!-- 歌曲列表JS自动渲染 -->
                 </div>
             </aside>
 
             <!-- 中间播放器区域 -->
             <section class="player-section">
-                <!-- 专辑封面 + 可视化频谱 -->
                 <div class="album-wrapper">
                     <canvas class="visualizer-canvas" id="visualizer"></canvas>
                     <div class="album-cover" id="albumCover">
-                        <img src="https://picsum.photos/seed/dj-default/400/400" alt="专辑封面" id="coverImg">
+                        <img src="https://picsum.photos/seed/sad-default/400/400" alt="专辑封面" id="coverImg">
                         <div class="cover-glow"></div>
                     </div>
                 </div>
 
-                <!-- 歌曲信息 -->
                 <div class="song-info">
                     <h1 class="song-title" id="songTitle">点击左侧歌曲开始播放</h1>
-                    <p class="song-artist" id="songArtist">Neon Beat 舞曲库</p>
+                    <p class="song-artist" id="songArtist">晚情歌 · 陪你度过深夜</p>
                 </div>
 
                 <!-- 进度条 -->
@@ -93,7 +93,7 @@
                 </div>
             </section>
 
-            <!-- 右侧信息面板 -->
+            <!-- 右侧歌词面板 -->
             <aside class="info-panel">
                 <div class="panel-tabs">
                     <button class="panel-tab active" data-panel="lyric">歌词</button>
@@ -102,7 +102,7 @@
                 </div>
                 <div class="panel-content" id="panelContent">
                     <div class="lyric-container">
-                        <p class="lyric-placeholder">纯音乐舞曲 · 享受节奏律动</p>
+                        <p class="lyric-placeholder">加载中...</p>
                     </div>
                 </div>
             </aside>
@@ -111,7 +111,7 @@
 
     <!-- 移动端迷你播放器 -->
     <div class="mini-player" id="miniPlayer">
-        <img src="https://picsum.photos/seed/dj-default/60/60" alt="" class="mini-cover" id="miniCover">
+        <img src="https://picsum.photos/seed/sad-default/60/60" alt="" class="mini-cover" id="miniCover">
         <div class="mini-info">
             <div class="mini-title" id="miniTitle">未播放</div>
             <div class="mini-artist" id="miniArtist">-</div>
@@ -119,10 +119,10 @@
         <button class="mini-play" id="miniPlayBtn">▶</button>
     </div>
 
-    <!-- 音频播放器核心 -->
+    <!-- 音频核心 -->
     <audio id="audioPlayer" crossorigin="anonymous">
 
-    <!-- JS脚本按顺序引入 -->
+    <!-- JS按顺序引入 -->
     <script src="js/playlist.js"></script>
     <script src="js/visualizer.js"></script>
     <script src="js/player.js"></script>
