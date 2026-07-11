@@ -1,3 +1,4 @@
+// ========== 获取DOM元素 ==========
 const audio = document.getElementById('audioPlayer');
 const playBtn = document.getElementById('playBtn');
 const miniPlayBtn = document.getElementById('miniPlayBtn');
@@ -19,20 +20,25 @@ const miniCover = document.getElementById('miniCover');
 const miniTitle = document.getElementById('miniTitle');
 const miniArtist = document.getElementById('miniArtist');
 
+// ========== 全局状态变量 ==========
 let currentIndex = 0;
 let isPlaying = false;
-let playMode = 'loop'; // loop, single, shuffle
+let playMode = 'loop'; // loop列表循环 / single单曲循环 / shuffle随机播放
 let isMuted = false;
 let lastVolume = 0.7;
 
-// 初始化音量
-audio.volume = 0.7;
+// ========== 初始化 ==========
+window.addEventListener('DOMContentLoaded', () => {
+    audio.volume = 0.7;
+    createParticles();
+});
 
-// 播放指定歌曲
+// ========== 核心播放函数 ==========
 function playSong(index) {
     currentIndex = index;
     const song = playlistData[index];
     
+    // 更新界面信息
     audio.src = song.url;
     coverImg.src = song.cover;
     miniCover.src = song.cover;
@@ -41,34 +47,35 @@ function playSong(index) {
     miniTitle.textContent = song.title;
     miniArtist.textContent = song.artist;
     
-    // 更新播放状态高亮
+    // 更新列表播放高亮
     document.querySelectorAll('.song-item').forEach(item => {
         item.classList.remove('playing');
         if (parseInt(item.dataset.index) === index) {
             item.classList.add('playing');
+            // 自动滚动到播放位置
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
     
+    // 播放音频
+    audio.load();
     audio.play().then(() => {
         isPlaying = true;
         updatePlayButton();
         albumCover.classList.add('playing');
-        initVisualizer();
+        // 初始化音频可视化
+        if (typeof initVisualizer === 'function') {
+            initVisualizer();
+        }
     }).catch(err => {
-        console.log('播放失败:', err);
+        console.warn('播放失败，自动切换下一首:', err);
+        playNext();
     });
 }
 
-// 更新播放按钮状态
-function updatePlayButton() {
-    const icon = isPlaying ? '⏸' : '▶';
-    playBtn.textContent = icon;
-    miniPlayBtn.textContent = icon;
-}
-
-// 播放/暂停切换
+// ========== 播放/暂停切换 ==========
 function togglePlay() {
-    if (!audio.src) {
+    if (!audio.src || audio.src === window.location.href) {
         playSong(0);
         return;
     }
@@ -84,10 +91,18 @@ function togglePlay() {
     updatePlayButton();
 }
 
+// 更新播放按钮图标
+function updatePlayButton() {
+    const icon = isPlaying ? '⏸' : '▶';
+    playBtn.textContent = icon;
+    miniPlayBtn.textContent = icon;
+}
+
+// 绑定播放按钮事件
 playBtn.addEventListener('click', togglePlay);
 miniPlayBtn.addEventListener('click', togglePlay);
 
-// 上一首
+// ========== 上一首/下一首 ==========
 prevBtn.addEventListener('click', () => {
     let newIndex;
     if (playMode === 'shuffle') {
@@ -98,7 +113,6 @@ prevBtn.addEventListener('click', () => {
     playSong(newIndex);
 });
 
-// 下一首
 nextBtn.addEventListener('click', () => {
     playNext();
 });
@@ -109,38 +123,42 @@ function playNext() {
         newIndex = Math.floor(Math.random() * playlistData.length);
     } else if (playMode === 'single') {
         newIndex = currentIndex;
+        audio.currentTime = 0;
+        audio.play();
+        return;
     } else {
         newIndex = currentIndex < playlistData.length - 1 ? currentIndex + 1 : 0;
     }
     playSong(newIndex);
 }
 
-// 播放结束自动下一首
+// 播放结束自动切换
 audio.addEventListener('ended', () => {
     playNext();
 });
 
-// 进度更新
+// ========== 进度条控制 ==========
 audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
     const percent = (audio.currentTime / audio.duration) * 100;
     progressFill.style.width = percent + '%';
     progressHandle.style.left = percent + '%';
     currentTimeEl.textContent = formatTime(audio.currentTime);
 });
 
-// 元数据加载完成
 audio.addEventListener('loadedmetadata', () => {
     totalTimeEl.textContent = formatTime(audio.duration);
 });
 
-// 进度条点击跳转
+// 点击进度条跳转
 progressBar.addEventListener('click', (e) => {
+    if (!audio.duration) return;
     const rect = progressBar.getBoundingClientRect();
     const percent = (e.clientX - rect.left) / rect.width;
     audio.currentTime = percent * audio.duration;
 });
 
-// 音量控制
+// ========== 音量控制 ==========
 volumeSlider.addEventListener('input', (e) => {
     const volume = e.target.value / 100;
     audio.volume = volume;
@@ -174,33 +192,36 @@ function updateVolumeIcon() {
     }
 }
 
-// 播放模式切换
+// ========== 播放模式切换 ==========
 modeBtn.addEventListener('click', () => {
     const modes = ['loop', 'single', 'shuffle'];
     const icons = ['🔁', '🔂', '🔀'];
+    const tips = ['列表循环', '单曲循环', '随机播放'];
     const currentModeIndex = modes.indexOf(playMode);
     const nextIndex = (currentModeIndex + 1) % modes.length;
     playMode = modes[nextIndex];
     modeBtn.textContent = icons[nextIndex];
-    modeBtn.title = playMode === 'loop' ? '列表循环' : playMode === 'single' ? '单曲循环' : '随机播放';
+    modeBtn.title = tips[nextIndex];
 });
 
-// 生成背景粒子
+// ========== 背景粒子生成 ==========
 function createParticles() {
     const container = document.getElementById('particles');
+    if (!container) return;
     for (let i = 0; i < 50; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
         particle.style.left = Math.random() * 100 + '%';
         particle.style.animationDelay = Math.random() * 15 + 's';
         particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
-        particle.style.width = (Math.random() * 4 + 2) + 'px';
-        particle.style.height = particle.style.width;
+        const size = Math.random() * 4 + 2;
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
         container.appendChild(particle);
     }
 }
 
-// 键盘快捷键
+// ========== 键盘快捷键 ==========
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT') return;
     
@@ -210,10 +231,10 @@ document.addEventListener('keydown', (e) => {
             togglePlay();
             break;
         case 'ArrowLeft':
-            audio.currentTime -= 5;
+            audio.currentTime = Math.max(0, audio.currentTime - 5);
             break;
         case 'ArrowRight':
-            audio.currentTime += 5;
+            audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
             break;
         case 'ArrowUp':
             e.preventDefault();
@@ -229,6 +250,3 @@ document.addEventListener('keydown', (e) => {
             break;
     }
 });
-
-// 初始化
-createParticles();
