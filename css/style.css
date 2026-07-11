@@ -26,7 +26,7 @@ body {
         radial-gradient(ellipse at bottom right, rgba(0, 240, 255, 0.1), transparent 50%);
 }
 
-/* 背景粒子 */
+/* 背景浮动粒子 */
 .bg-particles {
     position: fixed;
     top: 0;
@@ -56,7 +56,7 @@ body {
     100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
 }
 
-/* 导航栏 */
+/* 顶部导航栏 */
 .navbar {
     display: flex;
     align-items: center;
@@ -157,7 +157,7 @@ body {
     font-size: 14px;
 }
 
-/* 主体布局 */
+/* 主体三栏布局 */
 .main-content {
     display: grid;
     grid-template-columns: 320px 1fr 300px;
@@ -168,7 +168,7 @@ body {
     min-height: calc(100vh - 80px);
 }
 
-/* 左侧歌单 */
+/* 左侧歌单侧边栏 */
 .sidebar {
     background: var(--bg-card);
     backdrop-filter: blur(20px);
@@ -310,7 +310,7 @@ body {
     flex-shrink: 0;
 }
 
-/* 中间播放器 */
+/* 中间播放器核心区 */
 .player-section {
     display: flex;
     flex-direction: column;
@@ -457,7 +457,7 @@ body {
     opacity: 1;
 }
 
-/* 控制按钮 */
+/* 控制按钮组 */
 .controls {
     display: flex;
     align-items: center;
@@ -524,7 +524,7 @@ body {
     box-shadow: 0 0 8px var(--primary);
 }
 
-/* 右侧面板 */
+/* 右侧信息面板 */
 .info-panel {
     background: var(--bg-card);
     backdrop-filter: blur(20px);
@@ -594,7 +594,7 @@ body {
     font-style: italic;
 }
 
-/* 迷你播放器 */
+/* 移动端迷你播放器 */
 .mini-player {
     display: none;
     position: fixed;
@@ -644,7 +644,7 @@ body {
     cursor: pointer;
 }
 
-/* 响应式 */
+/* 响应式适配 */
 @media (max-width: 1200px) {
     .main-content {
         grid-template-columns: 280px 1fr;
