@@ -3,158 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PULSE · 电音空间站 | 300首DJ舞曲精选</title>
+    <title>Neon Beat - 沉浸式 DJ 音乐站</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- 背景动态粒子层 -->
+    <!-- 背景粒子层 -->
     <div class="bg-particles" id="particles"></div>
     
-    <!-- 渐变光晕背景 -->
-    <div class="bg-glow">
-        <div class="glow glow-1"></div>
-        <div class="glow glow-2"></div>
-        <div class="glow glow-3"></div>
-    </div>
-
-    <!-- 顶部导航 -->
-    <header class="navbar">
-        <div class="nav-container">
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 顶部导航 -->
+        <header class="navbar">
             <div class="logo">
-                <span class="logo-icon">◉</span>
-                <span class="logo-text">PULSE</span>
-                <span class="logo-sub">DJ STATION</span>
+                <span class="logo-icon">♫</span>
+                <span class="logo-text">NEON BEAT</span>
             </div>
             <nav class="nav-menu">
-                <a href="#" class="nav-item active">首页</a>
+                <a href="#" class="nav-item active">推荐</a>
                 <a href="#" class="nav-item">歌单</a>
-                <a href="#" class="nav-item">排行榜</a>
+                <a href="#" class="nav-item">DJ榜单</a>
                 <a href="#" class="nav-item">分类</a>
-                <a href="#" class="nav-item">关于</a>
             </nav>
-            <div class="nav-right">
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="搜索歌曲 / 艺人 / 风格...">
-                    <span class="search-icon">⌕</span>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="搜索舞曲 / DJ...">
+                <button class="search-btn">🔍</button>
+            </div>
+        </header>
+
+        <!-- 主体区域 -->
+        <main class="main-content">
+            <!-- 左侧歌单列表 -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h3>热门歌单</h3>
+                    <span class="song-count" id="totalCount">0 首</span>
                 </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- 主体内容 -->
-    <main class="main-container">
-        <!-- 左侧：歌曲列表 -->
-        <section class="music-list-section">
-            <div class="section-header">
-                <h2>🔥 精选电音 300 首</h2>
-                <div class="filter-tabs">
-                    <button class="tab-btn active" data-filter="all">全部</button>
-                    <button class="tab-btn" data-filter="edm">EDM</button>
-                    <button class="tab-btn" data-filter="house">House</button>
-                    <button class="tab-btn" data-filter="techno">Techno</button>
-                    <button class="tab-btn" data-filter="trance">Trance</button>
-                    <button class="tab-btn" data-filter="dubstep">Dubstep</button>
+                <div class="playlist-tabs">
+                    <button class="tab-btn active" data-tab="all">全部</button>
+                    <button class="tab-btn" data-tab="edm">EDM</button>
+                    <button class="tab-btn" data-tab="house">House</button>
+                    <button class="tab-btn" data-tab="trance">Trance</button>
+                    <button class="tab-btn" data-tab="bass">Bass</button>
                 </div>
-            </div>
-            
-            <div class="list-stats">
-                <span id="totalCount">共 300 首歌曲</span>
-                <span class="play-all-btn" id="playAllBtn">▶ 全部播放</span>
-            </div>
+                <div class="playlist-container" id="playlist">
+                    <!-- 歌曲列表由JS渲染 -->
+                </div>
+            </aside>
 
-            <div class="music-list" id="musicList">
-                <!-- 歌曲列表由JS动态生成 -->
-            </div>
-        </section>
-
-        <!-- 右侧：播放器 + 可视化 -->
-        <aside class="player-section">
-            <!-- 专辑封面旋转效果 -->
-            <div class="cover-container">
-                <div class="cover-disc" id="coverDisc">
-                    <div class="cover-image" id="coverImage">
-                        <img src="https://picsum.photos/seed/dj1/400/400" alt="album cover" id="coverImg">
+            <!-- 中间播放器区域 -->
+            <section class="player-section">
+                <!-- 专辑封面 + 可视化 -->
+                <div class="album-wrapper">
+                    <div class="album-cover" id="albumCover">
+                        <img src="https://picsum.photos/seed/dj1/400/400" alt="专辑封面" id="coverImg">
+                        <div class="cover-glow"></div>
                     </div>
-                    <div class="cover-center"></div>
+                    <canvas class="visualizer-canvas" id="visualizer"></canvas>
                 </div>
-                <div class="cover-ring ring-1"></div>
-                <div class="cover-ring ring-2"></div>
-                <div class="cover-ring ring-3"></div>
-            </div>
 
-            <!-- 歌曲信息 -->
-            <div class="song-info">
-                <h1 class="song-title" id="songTitle">选择一首歌曲开始播放</h1>
-                <p class="song-artist" id="songArtist">--</p>
-                <div class="song-tags" id="songTags"></div>
-            </div>
-
-            <!-- 音频可视化画布 -->
-            <div class="visualizer-container">
-                <canvas id="visualizer"></canvas>
-            </div>
-
-            <!-- 进度条 -->
-            <div class="progress-section">
-                <span class="time current" id="currentTime">00:00</span>
-                <div class="progress-bar" id="progressBar">
-                    <div class="progress-fill" id="progressFill"></div>
-                    <div class="progress-thumb" id="progressThumb"></div>
+                <!-- 歌曲信息 -->
+                <div class="song-info">
+                    <h1 class="song-title" id="songTitle">选择一首舞曲开始</h1>
+                    <p class="song-artist" id="songArtist">Neon Beat Music</p>
                 </div>
-                <span class="time total" id="totalTime">00:00</span>
-            </div>
 
-            <!-- 控制按钮 -->
-            <div class="controls">
-                <button class="ctrl-btn mode-btn" id="modeBtn" title="播放模式">🔁</button>
-                <button class="ctrl-btn prev-btn" id="prevBtn">⏮</button>
-                <button class="ctrl-btn play-btn" id="playBtn">▶</button>
-                <button class="ctrl-btn next-btn" id="nextBtn">⏭</button>
-                <button class="ctrl-btn volume-btn" id="volumeBtn">🔊</button>
-            </div>
-
-            <!-- 音量控制 -->
-            <div class="volume-section">
-                <div class="volume-bar" id="volumeBar">
-                    <div class="volume-fill" id="volumeFill"></div>
-                    <div class="volume-thumb" id="volumeThumb"></div>
+                <!-- 进度条 -->
+                <div class="progress-section">
+                    <span class="time current-time" id="currentTime">00:00</span>
+                    <div class="progress-bar" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
+                        <div class="progress-handle" id="progressHandle"></div>
+                    </div>
+                    <span class="time total-time" id="totalTime">00:00</span>
                 </div>
-            </div>
 
-            <!-- 均衡器预设 -->
-            <div class="eq-presets">
-                <span class="eq-label">音效</span>
-                <button class="eq-btn active" data-eq="default">默认</button>
-                <button class="eq-btn" data-eq="bass">重低音</button>
-                <button class="eq-btn" data-eq="vocal">人声增强</button>
-                <button class="eq-btn" data-eq="rock">摇滚</button>
-            </div>
-        </aside>
-    </main>
+                <!-- 控制按钮 -->
+                <div class="controls">
+                    <button class="ctrl-btn mode-btn" id="modeBtn" title="播放模式">🔁</button>
+                    <button class="ctrl-btn prev-btn" id="prevBtn" title="上一首">⏮</button>
+                    <button class="ctrl-btn play-btn" id="playBtn" title="播放/暂停">▶</button>
+                    <button class="ctrl-btn next-btn" id="nextBtn" title="下一首">⏭</button>
+                    <button class="ctrl-btn volume-btn" id="volumeBtn" title="音量">🔊</button>
+                </div>
 
-    <!-- 底部播放条（移动端固定） -->
+                <!-- 音量滑块 -->
+                <div class="volume-section">
+                    <input type="range" id="volumeSlider" min="0" max="100" value="70" class="volume-slider">
+                </div>
+            </section>
+
+            <!-- 右侧歌词/信息区 -->
+            <aside class="info-panel">
+                <div class="panel-tabs">
+                    <button class="panel-tab active" data-panel="lyric">歌词</button>
+                    <button class="panel-tab" data-panel="info">歌曲信息</button>
+                    <button class="panel-tab" data-panel="similar">相似推荐</button>
+                </div>
+                <div class="panel-content" id="panelContent">
+                    <div class="lyric-container">
+                        <p class="lyric-placeholder">纯音乐舞曲 · 享受节奏</p>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- 底部固定播放器（移动端） -->
     <div class="mini-player" id="miniPlayer">
-        <div class="mini-cover">
-            <img src="https://picsum.photos/seed/dj1/100/100" alt="" id="miniCover">
-        </div>
+        <img src="https://picsum.photos/seed/dj1/60/60" alt="" class="mini-cover" id="miniCover">
         <div class="mini-info">
             <div class="mini-title" id="miniTitle">未播放</div>
-            <div class="mini-artist" id="miniArtist">--</div>
+            <div class="mini-artist" id="miniArtist">-</div>
         </div>
-        <div class="mini-controls">
-            <button id="miniPrev">⏮</button>
-            <button id="miniPlay">▶</button>
-            <button id="miniNext">⏭</button>
-        </div>
+        <button class="mini-play" id="miniPlayBtn">▶</button>
     </div>
 
     <!-- 音频元素 -->
     <audio id="audioPlayer" crossorigin="anonymous">
 
-    <!-- JS文件 -->
-    <script src="js/musicData.js"></script>
-    <script src="js/visualization.js"></script>
+    <!-- JS脚本 -->
+    <script src="js/playlist.js"></script>
+    <script src="js/visualizer.js"></script>
     <script src="js/player.js"></script>
 </body>
 </html>
